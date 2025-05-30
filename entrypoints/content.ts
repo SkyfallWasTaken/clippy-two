@@ -45,6 +45,8 @@ export default defineContentScript({
       shadowHost.style.bottom = "20px";
       shadowHost.style.right = "20px";
       shadowHost.style.zIndex = "2147483647";
+      shadowHost.style.transition =
+        "top 0.5s ease-in-out, left 0.5s ease-in-out";
       document.body.appendChild(shadowHost);
 
       const shadowRoot = shadowHost.attachShadow({ mode: "open" });
@@ -205,6 +207,47 @@ export default defineContentScript({
       speechBubble.appendChild(closeButton);
 
       queueSpeech(fact);
+
+      // Function to move Clippy to a random position
+      const moveClippyRandomly = () => {
+        if (!shadowHost.isConnected) {
+          // Stop if Clippy is removed
+          clearInterval(moveInterval);
+          return;
+        }
+
+        const clippyWidth = shadowHost.offsetWidth;
+        const clippyHeight = shadowHost.offsetHeight;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        let newTop = Math.random() * (viewportHeight - clippyHeight);
+        let newLeft = Math.random() * (viewportWidth - clippyWidth);
+
+        // Ensure Clippy stays fully within the viewport
+        newTop = Math.max(0, Math.min(newTop, viewportHeight - clippyHeight));
+        newLeft = Math.max(0, Math.min(newLeft, viewportWidth - clippyWidth));
+
+        shadowHost.style.top = `${newTop}px`;
+        shadowHost.style.left = `${newLeft}px`;
+        shadowHost.style.bottom = "auto"; // Clear previous positioning
+        shadowHost.style.right = "auto"; // Clear previous positioning
+      };
+
+      // Move Clippy every 3 seconds
+      const moveInterval = setInterval(moveClippyRandomly, 3000);
+
+      // Initial random move after a short delay to ensure dimensions are available
+      setTimeout(moveClippyRandomly, 100);
+
+      // Also clear interval when Clippy is closed
+      const originalCloseOnclick = closeButton.onclick;
+      closeButton.onclick = (event) => {
+        clearInterval(moveInterval);
+        if (originalCloseOnclick) {
+          originalCloseOnclick.call(closeButton, event as any);
+        }
+      };
     } catch (error) {
       console.error("Error analyzing page:", error);
     }
