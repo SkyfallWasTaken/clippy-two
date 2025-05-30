@@ -1,39 +1,11 @@
 import { queueSpeech } from "../lib/speechQueue";
 
-let speechQueued = false;
-let speechText = "";
-function playSpeech() {
-  if ("speechSynthesis" in window) {
-    const utterance = new SpeechSynthesisUtterance(speechText);
-    speechSynthesis.speak(utterance);
-  }
-}
-
-function handleUserInteraction() {
-  if (speechQueued) {
-    playSpeech();
-    speechQueued = false;
-    // Remove listeners after first interaction
-    document.removeEventListener("click", handleUserInteraction);
-    document.removeEventListener("keydown", handleUserInteraction);
-    document.removeEventListener("scroll", handleUserInteraction);
-  }
-}
-
-// Queue speech for first user interaction
-speechQueued = true;
-document.addEventListener("click", handleUserInteraction);
-document.addEventListener("keydown", handleUserInteraction);
-document.addEventListener("scroll", handleUserInteraction);
-
 export default defineContentScript({
   matches: ["<all_urls>"],
   async main() {
-    // Get page text content and title
     const pageText = document.body.innerText;
     const pageTitle = document.title;
 
-    // Prepare prompt for the AI
     const messages = [
       {
         role: "system",
@@ -68,32 +40,26 @@ export default defineContentScript({
 
       console.log("📎 Clippy says:", fact);
 
-      // Create a host element for the shadow DOM
       const shadowHost = document.createElement("div");
       shadowHost.style.position = "fixed";
       shadowHost.style.bottom = "20px";
       shadowHost.style.right = "20px";
-      shadowHost.style.zIndex = "2147483647"; // Max z-index
+      shadowHost.style.zIndex = "2147483647";
       document.body.appendChild(shadowHost);
 
-      // Attach a shadow root
       const shadowRoot = shadowHost.attachShadow({ mode: "open" });
 
-      // Create Clippy container (will be inside the shadow DOM)
       const clippyContainer = document.createElement("div");
-      // Reset styles and set a baseline for the container itself
       clippyContainer.style.all = "initial";
       clippyContainer.style.display = "flex";
       clippyContainer.style.flexDirection = "column";
       clippyContainer.style.alignItems = "center";
-      // Establish a new default font context within the shadow DOM
       clippyContainer.style.fontFamily =
         "'Helvetica Neue', Helvetica, Arial, sans-serif";
       clippyContainer.style.fontSize = "14px";
       clippyContainer.style.lineHeight = "1.4";
-      clippyContainer.style.color = "#333333"; // A neutral dark gray for text
+      clippyContainer.style.color = "#333333";
 
-      // Create speech bubble
       const speechBubble = document.createElement("div");
       speechBubble.textContent = fact;
       speechBubble.style.backgroundColor = "#fcffc8";
@@ -105,7 +71,6 @@ export default defineContentScript({
       speechBubble.style.boxShadow = "5px 5px 10px rgba(0,0,0,0.2)";
       speechBubble.style.position = "relative";
 
-      // Create Close button
       const closeButton = document.createElement("div");
       closeButton.textContent = "X";
       closeButton.style.position = "absolute";
@@ -118,52 +83,47 @@ export default defineContentScript({
       closeButton.style.padding = "2px 5px";
       closeButton.style.border = "1px solid black";
       closeButton.style.borderRadius = "50%";
-      closeButton.style.backgroundColor = "#fcffc8"; // Match bubble background
+      closeButton.style.backgroundColor = "#fcffc8";
 
       closeButton.onclick = () => {
-        shadowHost.remove(); // Remove the host, which removes the shadow DOM
+        shadowHost.remove();
       };
 
       speechBubble.appendChild(closeButton);
 
-      // Add a little tail to the bubble
       const bubbleTail = document.createElement("div");
       bubbleTail.style.width = "0";
       bubbleTail.style.height = "0";
       bubbleTail.style.borderLeft = "10px solid transparent";
       bubbleTail.style.borderRight = "10px solid transparent";
-      bubbleTail.style.borderTop = "10px solid #fcffc8"; // Same as bubble background
+      bubbleTail.style.borderTop = "10px solid #fcffc8";
       bubbleTail.style.position = "absolute";
-      bubbleTail.style.bottom = "-10px"; // Position the tail at the bottom of the bubble
-      bubbleTail.style.left = "calc(50% - 10px)"; // Center the tail
-      // Add a border to the tail
+      bubbleTail.style.bottom = "-10px";
+      bubbleTail.style.left = "calc(50% - 10px)";
       const tailBorder = document.createElement("div");
       tailBorder.style.width = "0";
       tailBorder.style.height = "0";
-      tailBorder.style.borderLeft = "11px solid transparent"; // Slightly larger for border
-      tailBorder.style.borderRight = "11px solid transparent"; // Slightly larger for border
-      tailBorder.style.borderTop = "11px solid black"; // Border color
+      tailBorder.style.borderLeft = "11px solid transparent";
+      tailBorder.style.borderRight = "11px solid transparent";
+      tailBorder.style.borderTop = "11px solid black";
       tailBorder.style.position = "absolute";
-      tailBorder.style.bottom = "-11px"; // Position border behind tail
+      tailBorder.style.bottom = "-11px";
       tailBorder.style.left = "calc(50% - 11px)";
-      tailBorder.style.zIndex = "-1"; // Place border behind tail fill
+      tailBorder.style.zIndex = "-1";
 
       speechBubble.appendChild(tailBorder);
       speechBubble.appendChild(bubbleTail);
 
-      // Create Clippy image
       const clippyImage = document.createElement("img");
       clippyImage.src = "https://files.catbox.moe/m1dw07.gif";
       clippyImage.alt = "Clippy";
-      clippyImage.style.width = "80px"; // Adjust size as needed
+      clippyImage.style.width = "80px";
       clippyImage.style.height = "auto";
 
-      // Append elements to the shadow root
       clippyContainer.appendChild(speechBubble);
       clippyContainer.appendChild(clippyImage);
       shadowRoot.appendChild(clippyContainer);
 
-      // Add styles to the shadow DOM
       const styleElement = document.createElement("style");
       styleElement.textContent = `
         * {
@@ -228,20 +188,18 @@ export default defineContentScript({
       `;
       shadowRoot.appendChild(styleElement);
 
-      // Apply classes instead of inline styles for elements within shadow DOM
       speechBubble.className = "clippy-speech-bubble";
-      speechBubble.textContent = fact; // Set text content after class name to avoid overwrite if styles affect content
+      speechBubble.textContent = fact;
 
       bubbleTail.className = "clippy-speech-bubble-tail";
       tailBorder.className = "clippy-speech-bubble-tail-border";
       closeButton.className = "clippy-close-button";
-      closeButton.textContent = "X"; // Re-set text content as it might be cleared by className
+      closeButton.textContent = "X";
 
       clippyImage.className = "clippy-image";
       clippyImage.src = "https://files.catbox.moe/m1dw07.gif";
       clippyImage.alt = "Clippy";
 
-      // Re-append close button and tail as their content might have been affected by className changes
       speechBubble.appendChild(tailBorder);
       speechBubble.appendChild(bubbleTail);
       speechBubble.appendChild(closeButton);

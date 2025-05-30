@@ -29,17 +29,9 @@ export function queueSpeech(text: string, options = {}) {
     "pointerup",
   ];
 
-  //   // MODERATELY RELIABLE - Form and interaction events
-  //   const formEvents = [
-  //     "submit", // Form submission
-  //     "change", // Input value changes (user-initiated)
-  //     "input", // Text input (user-initiated)
-  //     "contextmenu", // Right-click menu
-  //   ];
-
   let eventsToUse = coreEvents;
 
-  const playSpeech = (event) => {
+  const playSpeech = (event: any) => {
     console.log(`Speech triggered by: ${event.type}`);
     speechSynthesis.speak(utterance);
 
