@@ -32,4 +32,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: extension-packages
-          path: .output/*.zip
+          path: |
+            .output/
+            !.output/chrome-mv3
+            !.output/firefox-mv2
