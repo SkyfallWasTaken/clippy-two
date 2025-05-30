@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Do NOT use the `chrome` namespace. Instead, use the `browser` namespace instead.
+
+Example:
+
+```ts
+await browser.offscreen.createDocument({
+    url: "entrypoints/offscreen/offscreen.html",
+    reasons: ["AUDIO_PLAYBACK"],
+    justification: "Speech synthesis for Clippy extension",
+});
+
+
+```
