@@ -1,5 +1,7 @@
 import { queueSpeech } from "../lib/speechQueue";
 
+let cancelCurrentSpeech: (() => void) | null = null;
+
 async function clippy() {
   const pageText = document.body.innerText;
   const pageTitle = document.title;
@@ -12,7 +14,7 @@ async function clippy() {
     },
     {
       role: "user",
-      content: `Analyze this webpage's content and tell me a completely useless fact about it in your Clippy style. Keep the facts 2 sentences. Here's the title: "${pageTitle}" and a sample of the text content: "${pageText.slice(
+      content: `Analyze this webpage\'s content and tell me a completely useless fact about it in your Clippy style, but don't mention that it's uselss. Keep the facts 2 sentences. Here\'s the title: "${pageTitle}" and a sample of the text content: "${pageText.slice(
         0,
         500
       )}..."`,
@@ -84,9 +86,10 @@ async function clippy() {
     closeButton.style.borderRadius = "50%";
     closeButton.style.backgroundColor = "#fcffc8";
 
-    closeButton.onclick = () => {
+    const originalOnClose = () => {
       shadowHost.remove();
     };
+    closeButton.onclick = originalOnClose;
 
     speechBubble.appendChild(closeButton);
 
@@ -149,9 +152,9 @@ async function clippy() {
           height: 0;
           border-left: 10px solid transparent;
           border-right: 10px solid transparent;
-          border-top: 10px solid #fcffc8; 
+          border-top: 10px solid #fcffc8;
           position: absolute;
-          bottom: -10px; 
+          bottom: -10px;
           left: calc(50% - 10px);
         }
         .clippy-speech-bubble-tail-border {
@@ -203,12 +206,10 @@ async function clippy() {
     speechBubble.appendChild(bubbleTail);
     speechBubble.appendChild(closeButton);
 
-    queueSpeech(fact);
+    cancelCurrentSpeech = queueSpeech(fact);
 
-    // Function to move Clippy to a random position
     const moveClippyRandomly = () => {
       if (!shadowHost.isConnected) {
-        // Stop if Clippy is removed
         clearInterval(moveInterval);
         return;
       }
@@ -221,39 +222,60 @@ async function clippy() {
       let newTop = Math.random() * (viewportHeight - clippyHeight);
       let newLeft = Math.random() * (viewportWidth - clippyWidth);
 
-      // Ensure Clippy stays fully within the viewport
       newTop = Math.max(0, Math.min(newTop, viewportHeight - clippyHeight));
       newLeft = Math.max(0, Math.min(newLeft, viewportWidth - clippyWidth));
 
       shadowHost.style.top = `${newTop}px`;
       shadowHost.style.left = `${newLeft}px`;
-      shadowHost.style.bottom = "auto"; // Clear previous positioning
-      shadowHost.style.right = "auto"; // Clear previous positioning
+      shadowHost.style.bottom = "auto";
+      shadowHost.style.right = "auto";
     };
 
-    // Move Clippy every 3 seconds
     const moveInterval = setInterval(moveClippyRandomly, 3000);
-
-    // Initial random move after a short delay to ensure dimensions are available
     setTimeout(moveClippyRandomly, 100);
 
-    // Also clear interval when Clippy is closed
-    const originalCloseOnclick = closeButton.onclick;
+    const existingCloseHandler = closeButton.onclick;
     closeButton.onclick = (event) => {
       clearInterval(moveInterval);
-      if (originalCloseOnclick) {
-        originalCloseOnclick.call(closeButton, event as any);
+      speechSynthesis.cancel();
+      if (cancelCurrentSpeech) {
+        cancelCurrentSpeech();
+        cancelCurrentSpeech = null;
+      }
+      if (existingCloseHandler) {
+        existingCloseHandler.call(closeButton, event as any);
       }
     };
   } catch (error) {
     console.error("Error analyzing page:", error);
+    if (cancelCurrentSpeech) {
+      cancelCurrentSpeech();
+      cancelCurrentSpeech = null;
+    }
+    const existingShadowHost = document.querySelector(
+      'div[style*="zIndex: 2147483647"]'
+    );
+    if (existingShadowHost) {
+      existingShadowHost.remove();
+    }
   }
 }
 
 export default defineContentScript({
   matches: ["<all_urls>"],
   async main(ctx) {
-    ctx.addEventListener(window, "wxt:locationchange", clippy);
-    clippy()
+    const handleLocationChange = async () => {
+      speechSynthesis.cancel();
+
+      if (cancelCurrentSpeech) {
+        cancelCurrentSpeech();
+        cancelCurrentSpeech = null;
+      }
+
+      await clippy();
+    };
+
+    ctx.addEventListener(window, "wxt:locationchange", handleLocationChange);
+    await clippy();
   },
 });
