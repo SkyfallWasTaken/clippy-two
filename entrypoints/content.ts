@@ -1,133 +1,130 @@
 import { queueSpeech } from "../lib/speechQueue";
 
-export default defineContentScript({
-  matches: ["<all_urls>"],
-  async main() {
-    const pageText = document.body.innerText;
-    const pageTitle = document.title;
+async function clippy() {
+  const pageText = document.body.innerText;
+  const pageTitle = document.title;
 
-    const messages = [
-      {
-        role: "system",
-        content:
-          "You are Clippy, the enthusiastic and overeager digital assistant! Your personality is helpful, cheerful, and slightly quirky. You love to pop up with interesting facts and observations, always starting with 'Hi there! Looks like you're reading about...' or 'Hey! I noticed that...'. Keep your responses short, fun, and engaging. End your messages with an offer to help, like 'Need any help understanding this?' or 'Would you like to know more about that?' Never use emojis, ever.",
+  const messages = [
+    {
+      role: "system",
+      content:
+        "You are Clippy, the enthusiastic and overeager digital assistant! Your personality is helpful, cheerful, and slightly quirky. You love to pop up with interesting facts and observations, always starting with 'Hi there! Looks like you're reading about...' or 'Hey! I noticed that...'. Keep your responses short, fun, and engaging. End your messages with an offer to help, like 'Need any help understanding this?' or 'Would you like to know more about that?' Never use emojis, ever.",
+    },
+    {
+      role: "user",
+      content: `Analyze this webpage's content and tell me a completely useless fact about it in your Clippy style. Keep the facts 2 sentences. Here's the title: "${pageTitle}" and a sample of the text content: "${pageText.slice(
+        0,
+        500
+      )}..."`,
+    },
+  ];
+
+  try {
+    // Call Hack Club AI API
+    const response = await fetch("https://ai.hackclub.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-      {
-        role: "user",
-        content: `Analyze this webpage's content and tell me a useless fact about it in your Clippy style. Keep the facts 2 sentences. Here's the title: "${pageTitle}" and a sample of the text content: "${pageText.slice(
-          0,
-          500
-        )}..."`,
-      },
-    ];
+      body: JSON.stringify({ messages }),
+    });
 
-    try {
-      // Call Hack Club AI API
-      const response = await fetch("https://ai.hackclub.com/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ messages }),
-      });
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
 
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
+    const data = await response.json();
+    const fact = data.choices[0].message.content;
 
-      const data = await response.json();
-      const fact = data.choices[0].message.content;
+    console.log("📎 Clippy says:", fact);
 
-      console.log("📎 Clippy says:", fact);
+    const shadowHost = document.createElement("div");
+    shadowHost.style.position = "fixed";
+    shadowHost.style.bottom = "20px";
+    shadowHost.style.right = "20px";
+    shadowHost.style.zIndex = "2147483647";
+    shadowHost.style.transition = "top 0.5s ease-in-out, left 0.5s ease-in-out";
+    document.body.appendChild(shadowHost);
 
-      const shadowHost = document.createElement("div");
-      shadowHost.style.position = "fixed";
-      shadowHost.style.bottom = "20px";
-      shadowHost.style.right = "20px";
-      shadowHost.style.zIndex = "2147483647";
-      shadowHost.style.transition =
-        "top 0.5s ease-in-out, left 0.5s ease-in-out";
-      document.body.appendChild(shadowHost);
+    const shadowRoot = shadowHost.attachShadow({ mode: "open" });
 
-      const shadowRoot = shadowHost.attachShadow({ mode: "open" });
+    const clippyContainer = document.createElement("div");
+    clippyContainer.style.all = "initial";
+    clippyContainer.style.display = "flex";
+    clippyContainer.style.flexDirection = "column";
+    clippyContainer.style.alignItems = "center";
+    clippyContainer.style.fontFamily =
+      "'Helvetica Neue', Helvetica, Arial, sans-serif";
+    clippyContainer.style.fontSize = "14px";
+    clippyContainer.style.lineHeight = "1.4";
+    clippyContainer.style.color = "#333333";
 
-      const clippyContainer = document.createElement("div");
-      clippyContainer.style.all = "initial";
-      clippyContainer.style.display = "flex";
-      clippyContainer.style.flexDirection = "column";
-      clippyContainer.style.alignItems = "center";
-      clippyContainer.style.fontFamily =
-        "'Helvetica Neue', Helvetica, Arial, sans-serif";
-      clippyContainer.style.fontSize = "14px";
-      clippyContainer.style.lineHeight = "1.4";
-      clippyContainer.style.color = "#333333";
+    const speechBubble = document.createElement("div");
+    speechBubble.textContent = fact;
+    speechBubble.style.backgroundColor = "#fcffc8";
+    speechBubble.style.border = "1px solid black";
+    speechBubble.style.borderRadius = "10px";
+    speechBubble.style.padding = "15px";
+    speechBubble.style.marginBottom = "10px";
+    speechBubble.style.maxWidth = "300px";
+    speechBubble.style.boxShadow = "5px 5px 10px rgba(0,0,0,0.2)";
+    speechBubble.style.position = "relative";
 
-      const speechBubble = document.createElement("div");
-      speechBubble.textContent = fact;
-      speechBubble.style.backgroundColor = "#fcffc8";
-      speechBubble.style.border = "1px solid black";
-      speechBubble.style.borderRadius = "10px";
-      speechBubble.style.padding = "15px";
-      speechBubble.style.marginBottom = "10px";
-      speechBubble.style.maxWidth = "300px";
-      speechBubble.style.boxShadow = "5px 5px 10px rgba(0,0,0,0.2)";
-      speechBubble.style.position = "relative";
+    const closeButton = document.createElement("div");
+    closeButton.textContent = "X";
+    closeButton.style.position = "absolute";
+    closeButton.style.top = "5px";
+    closeButton.style.right = "10px";
+    closeButton.style.cursor = "pointer";
+    closeButton.style.fontSize = "16px";
+    closeButton.style.fontWeight = "bold";
+    closeButton.style.lineHeight = "1";
+    closeButton.style.padding = "2px 5px";
+    closeButton.style.border = "1px solid black";
+    closeButton.style.borderRadius = "50%";
+    closeButton.style.backgroundColor = "#fcffc8";
 
-      const closeButton = document.createElement("div");
-      closeButton.textContent = "X";
-      closeButton.style.position = "absolute";
-      closeButton.style.top = "5px";
-      closeButton.style.right = "10px";
-      closeButton.style.cursor = "pointer";
-      closeButton.style.fontSize = "16px";
-      closeButton.style.fontWeight = "bold";
-      closeButton.style.lineHeight = "1";
-      closeButton.style.padding = "2px 5px";
-      closeButton.style.border = "1px solid black";
-      closeButton.style.borderRadius = "50%";
-      closeButton.style.backgroundColor = "#fcffc8";
+    closeButton.onclick = () => {
+      shadowHost.remove();
+    };
 
-      closeButton.onclick = () => {
-        shadowHost.remove();
-      };
+    speechBubble.appendChild(closeButton);
 
-      speechBubble.appendChild(closeButton);
+    const bubbleTail = document.createElement("div");
+    bubbleTail.style.width = "0";
+    bubbleTail.style.height = "0";
+    bubbleTail.style.borderLeft = "10px solid transparent";
+    bubbleTail.style.borderRight = "10px solid transparent";
+    bubbleTail.style.borderTop = "10px solid #fcffc8";
+    bubbleTail.style.position = "absolute";
+    bubbleTail.style.bottom = "-10px";
+    bubbleTail.style.left = "calc(50% - 10px)";
+    const tailBorder = document.createElement("div");
+    tailBorder.style.width = "0";
+    tailBorder.style.height = "0";
+    tailBorder.style.borderLeft = "11px solid transparent";
+    tailBorder.style.borderRight = "11px solid transparent";
+    tailBorder.style.borderTop = "11px solid black";
+    tailBorder.style.position = "absolute";
+    tailBorder.style.bottom = "-11px";
+    tailBorder.style.left = "calc(50% - 11px)";
+    tailBorder.style.zIndex = "-1";
 
-      const bubbleTail = document.createElement("div");
-      bubbleTail.style.width = "0";
-      bubbleTail.style.height = "0";
-      bubbleTail.style.borderLeft = "10px solid transparent";
-      bubbleTail.style.borderRight = "10px solid transparent";
-      bubbleTail.style.borderTop = "10px solid #fcffc8";
-      bubbleTail.style.position = "absolute";
-      bubbleTail.style.bottom = "-10px";
-      bubbleTail.style.left = "calc(50% - 10px)";
-      const tailBorder = document.createElement("div");
-      tailBorder.style.width = "0";
-      tailBorder.style.height = "0";
-      tailBorder.style.borderLeft = "11px solid transparent";
-      tailBorder.style.borderRight = "11px solid transparent";
-      tailBorder.style.borderTop = "11px solid black";
-      tailBorder.style.position = "absolute";
-      tailBorder.style.bottom = "-11px";
-      tailBorder.style.left = "calc(50% - 11px)";
-      tailBorder.style.zIndex = "-1";
+    speechBubble.appendChild(tailBorder);
+    speechBubble.appendChild(bubbleTail);
 
-      speechBubble.appendChild(tailBorder);
-      speechBubble.appendChild(bubbleTail);
+    const clippyImage = document.createElement("img");
+    clippyImage.src = "https://files.catbox.moe/m1dw07.gif";
+    clippyImage.alt = "Clippy";
+    clippyImage.style.width = "80px";
+    clippyImage.style.height = "auto";
 
-      const clippyImage = document.createElement("img");
-      clippyImage.src = "https://files.catbox.moe/m1dw07.gif";
-      clippyImage.alt = "Clippy";
-      clippyImage.style.width = "80px";
-      clippyImage.style.height = "auto";
+    clippyContainer.appendChild(speechBubble);
+    clippyContainer.appendChild(clippyImage);
+    shadowRoot.appendChild(clippyContainer);
 
-      clippyContainer.appendChild(speechBubble);
-      clippyContainer.appendChild(clippyImage);
-      shadowRoot.appendChild(clippyContainer);
-
-      const styleElement = document.createElement("style");
-      styleElement.textContent = `
+    const styleElement = document.createElement("style");
+    styleElement.textContent = `
         * {
           margin: 0;
           padding: 0;
@@ -188,68 +185,75 @@ export default defineContentScript({
           height: auto;
         }
       `;
-      shadowRoot.appendChild(styleElement);
+    shadowRoot.appendChild(styleElement);
 
-      speechBubble.className = "clippy-speech-bubble";
-      speechBubble.textContent = fact;
+    speechBubble.className = "clippy-speech-bubble";
+    speechBubble.textContent = fact;
 
-      bubbleTail.className = "clippy-speech-bubble-tail";
-      tailBorder.className = "clippy-speech-bubble-tail-border";
-      closeButton.className = "clippy-close-button";
-      closeButton.textContent = "X";
+    bubbleTail.className = "clippy-speech-bubble-tail";
+    tailBorder.className = "clippy-speech-bubble-tail-border";
+    closeButton.className = "clippy-close-button";
+    closeButton.textContent = "X";
 
-      clippyImage.className = "clippy-image";
-      clippyImage.src = "https://files.catbox.moe/m1dw07.gif";
-      clippyImage.alt = "Clippy";
+    clippyImage.className = "clippy-image";
+    clippyImage.src = "https://files.catbox.moe/m1dw07.gif";
+    clippyImage.alt = "Clippy";
 
-      speechBubble.appendChild(tailBorder);
-      speechBubble.appendChild(bubbleTail);
-      speechBubble.appendChild(closeButton);
+    speechBubble.appendChild(tailBorder);
+    speechBubble.appendChild(bubbleTail);
+    speechBubble.appendChild(closeButton);
 
-      queueSpeech(fact);
+    queueSpeech(fact);
 
-      // Function to move Clippy to a random position
-      const moveClippyRandomly = () => {
-        if (!shadowHost.isConnected) {
-          // Stop if Clippy is removed
-          clearInterval(moveInterval);
-          return;
-        }
-
-        const clippyWidth = shadowHost.offsetWidth;
-        const clippyHeight = shadowHost.offsetHeight;
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-
-        let newTop = Math.random() * (viewportHeight - clippyHeight);
-        let newLeft = Math.random() * (viewportWidth - clippyWidth);
-
-        // Ensure Clippy stays fully within the viewport
-        newTop = Math.max(0, Math.min(newTop, viewportHeight - clippyHeight));
-        newLeft = Math.max(0, Math.min(newLeft, viewportWidth - clippyWidth));
-
-        shadowHost.style.top = `${newTop}px`;
-        shadowHost.style.left = `${newLeft}px`;
-        shadowHost.style.bottom = "auto"; // Clear previous positioning
-        shadowHost.style.right = "auto"; // Clear previous positioning
-      };
-
-      // Move Clippy every 3 seconds
-      const moveInterval = setInterval(moveClippyRandomly, 3000);
-
-      // Initial random move after a short delay to ensure dimensions are available
-      setTimeout(moveClippyRandomly, 100);
-
-      // Also clear interval when Clippy is closed
-      const originalCloseOnclick = closeButton.onclick;
-      closeButton.onclick = (event) => {
+    // Function to move Clippy to a random position
+    const moveClippyRandomly = () => {
+      if (!shadowHost.isConnected) {
+        // Stop if Clippy is removed
         clearInterval(moveInterval);
-        if (originalCloseOnclick) {
-          originalCloseOnclick.call(closeButton, event as any);
-        }
-      };
-    } catch (error) {
-      console.error("Error analyzing page:", error);
-    }
+        return;
+      }
+
+      const clippyWidth = shadowHost.offsetWidth;
+      const clippyHeight = shadowHost.offsetHeight;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      let newTop = Math.random() * (viewportHeight - clippyHeight);
+      let newLeft = Math.random() * (viewportWidth - clippyWidth);
+
+      // Ensure Clippy stays fully within the viewport
+      newTop = Math.max(0, Math.min(newTop, viewportHeight - clippyHeight));
+      newLeft = Math.max(0, Math.min(newLeft, viewportWidth - clippyWidth));
+
+      shadowHost.style.top = `${newTop}px`;
+      shadowHost.style.left = `${newLeft}px`;
+      shadowHost.style.bottom = "auto"; // Clear previous positioning
+      shadowHost.style.right = "auto"; // Clear previous positioning
+    };
+
+    // Move Clippy every 3 seconds
+    const moveInterval = setInterval(moveClippyRandomly, 3000);
+
+    // Initial random move after a short delay to ensure dimensions are available
+    setTimeout(moveClippyRandomly, 100);
+
+    // Also clear interval when Clippy is closed
+    const originalCloseOnclick = closeButton.onclick;
+    closeButton.onclick = (event) => {
+      clearInterval(moveInterval);
+      if (originalCloseOnclick) {
+        originalCloseOnclick.call(closeButton, event as any);
+      }
+    };
+  } catch (error) {
+    console.error("Error analyzing page:", error);
+  }
+}
+
+export default defineContentScript({
+  matches: ["<all_urls>"],
+  async main(ctx) {
+    ctx.addEventListener(window, "wxt:locationchange", clippy);
+    clippy()
   },
 });
