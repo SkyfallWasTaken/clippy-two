@@ -231,7 +231,7 @@ async function clippy() {
       shadowHost.style.right = "auto";
     };
 
-    const moveInterval = setInterval(moveClippyRandomly, 3000);
+    const moveInterval = setInterval(moveClippyRandomly, 2000);
     setTimeout(moveClippyRandomly, 100);
 
     const existingCloseHandler = closeButton.onclick;
