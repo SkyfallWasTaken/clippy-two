@@ -8,7 +8,7 @@
     </p>
     <p>
         <a href="https://chromewebstore.google.com/detail/clippy-two/hiipphjaeikpijmonamnkefogfjbjhph">
-            ✈️ chrome web store
+            chrome web store
         </a>
     </p>
     <br/>
